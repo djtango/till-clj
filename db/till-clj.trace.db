@@ -1,0 +1,18 @@
+01-23 01:00:29 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "TILLS" not found; SQL statement:
+INSERT INTO tills (shop-name,address,phone,menu) VALUES (?,?,?,?) [42102-170]
+01-23 01:00:29 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "TILLS" not found; SQL statement:
+INSERT INTO tills (shop-name,address,phone,menu) VALUES (?,?,?,?) [42102-170]
+01-23 01:00:29 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "TILLS" not found; SQL statement:
+INSERT INTO tills (shop-name,address,phone,menu) VALUES (?,?,?,?) [42102-170]
+01-23 14:58:11 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "TILLS" not found; SQL statement:
+INSERT INTO tills (shop-name,address,phone,menu) VALUES (?,?,?,?) [42102-170]
+01-23 14:58:11 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "TILLS" not found; SQL statement:
+INSERT INTO tills (shop-name,address,phone,menu) VALUES (?,?,?,?) [42102-170]
+01-23 14:58:11 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "TILLS" not found; SQL statement:
+INSERT INTO tills (shop-name,address,phone,menu) VALUES (?,?,?,?) [42102-170]
