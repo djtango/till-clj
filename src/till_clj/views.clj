@@ -19,6 +19,10 @@
     [:a {:href "/order/new"} "Start a new order"]
     " ]"])
 
+(def menu-item-line
+ [:li [:input {:type "text" :name "menu" :placeholder "name"}]
+  [:input {:type "text" :name "menu" :placeholder "price"}]])
+
 (defn home-page
   []
   (hic-p/html5
@@ -27,27 +31,66 @@
     [:h1 "Home"]
     [:p "Welcome to Till-Clj, a Clojure Webapp built on Compojure for handling orders and receipts for restaurants!"]))
 
+(defn new-till-form
+  [shop-name address phone menu-items]
+  [:form {:action "/till/menu/new" :method "POST"}
+   [:p "Shop Name: " [:input {:type "text" :name "shop-name" :value shop-name :placeholder "your restaurant"}]]
+   [:p "Address: " [:input {:type "text" :name "address" :value address :placeholder "restaurant address"}]]
+   [:p "Phone: " [:input {:type "text" :name "phone" :value phone :placeholder "0123456789"}]]
+   [:p "Number of menu items:" [:input {:type "number" :name "num_menu_items" :placeholder "number of menu items" :value 5}]]
+   [:p [:input {:type "submit" :value "Save and continue"}]]])
+
+(defn str->num
+  [num-string]
+  (if (string? num-string)
+    (read-string num-string)
+    num-string))
+
+(defn gen-form-rows
+  [form input-num-rows]
+  (let [num-rows (- (str->num input-num-rows) 1)]
+    (if (<= num-rows 0)
+     form
+     (gen-form-rows
+       (conj form menu-item-line)
+       (- num-rows 1)))))
+
+(defn menu-item-rows
+  [num-rows]
+  (gen-form-rows
+    [:ul menu-item-line]
+    num-rows))
+
+(defn add-menu-page
+  [params]
+  (let [[shop-name address phone num-rows]
+        (vals params)]
+    (hic-p/html5
+      (gen-page-head "Add your menu")
+      header-links
+      [:h1 "Configure your menu"]
+      [:form {:action "/till/create" :method "POST"}
+       [:input {:type "hidden" :name "menu_name" :value shop-name}]
+       [:input {:type "hidden" :name "address" :value address}]
+       [:input {:type "hidden" :name "phone" :value phone}]
+       (menu-item-rows num-rows)])))
+
 (defn add-till-page
   []
   (hic-p/html5
     (gen-page-head "Add a till")
     header-links
     [:h1 "Configure your new till"]
-    [:form {:action "/till/create" :method "POST"}
-     [:p "Shop Name: " [:input {:type "text" :name "shop-name"}]]
-     [:p "Address: " [:input {:type "text" :name "address"}]]
-     [:p "Phone: " [:input {:type "text" :name "phone"}]]
-     [:p "Menu: " [:input {:type "text" :name "menu"}]]
-     [:p [:input {:type "submit" :value "Create Till"}]]]))
+    (new-till-form nil nil nil nil)))
 
 (defn add-till
   [params]
-  (let [[shop-name address phone menu]
+  (let [[shop-name address phone & menu-items]
        (vals params)]
     (db/add-till-to-db shop-name
                       address
                       phone
-                      menu)))
+                      menu-items)))
 
 (defn add-order-page
   []

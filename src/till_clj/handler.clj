@@ -12,6 +12,9 @@
   (GET "/till/new"
        []
        (views/add-till-page))
+  (POST "/till/menu/new"
+        {params :params}
+        (views/add-menu-page params))
   (POST "/till/create"
         {params :params}
         (views/add-till params)
