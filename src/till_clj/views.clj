@@ -73,7 +73,8 @@
        [:input {:type "hidden" :name "menu_name" :value shop-name}]
        [:input {:type "hidden" :name "address" :value address}]
        [:input {:type "hidden" :name "phone" :value phone}]
-       (menu-item-rows num-rows)])))
+       (menu-item-rows num-rows)
+       [:input {:type "submit" :value "Add menu"}]])))
 
 (defn add-till-page
   []
