@@ -73,36 +73,6 @@
     (add-foreign-key :till_menu_items :till_id :tills :id)
     (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)))
 
-(defn new-id
-  [table-name]
-  (sql/with-db-connection [db-con db-spec]
-    (let [results (sql/query db-con [(str "SELECT * FROM " table-name)]
-                             :result-set-fn (fn [result-set]
-                                              (count result-set)))]
-      (+ results 1))))
-
-(defn add-till-to-db
-  [shop-name address phone]
-  (sql/with-db-connection [db-con db-spec]
-    (sql/insert! db-con :tills {
-                                :shop_name shop-name
-                                :address   address
-                                :phone     phone})))
-
-(defn add-menu-items-to-db
-  [menu-item-names
-   menu-item-prices]
-  (->> (map #(sql/with-db-connection [db-con db-spec]
-               (sql/insert! db-con
-                            :menu_items {
-                                         :name  %1
-                                         :price %2
-                                         }))
-            menu-item-names
-            menu-item-prices)
-       flatten
-       (map (keyword "scope_identity()"))))
-
 (defn get-till-by-name
   [till-id]
   (sql/with-db-connection [db-con db-spec]
@@ -116,27 +86,9 @@
     (let [results (sql/query db-con ["SELECT * FROM tills"])]
       results)))
 
-(defn new-id-range
-  [table-name new-rows]
-  (let [first-id (new-id table-name)
-        num-rows (count new-rows)]
-    (range first-id (+ first-id num-rows))))
-
-(defn map-ids
-  [table-name new-rows]
-  (map (fn [row-item new-id]
-         (assoc row-item :id new-id))
-       new-rows
-       (new-id-range table-name new-rows)))
-
-(defn add-menu-to-db
-  [menu]
-  (sql/with-db-connection [db-con db-spec]
-    (let [menu-items-ids (map-ids "menu_items" menu)
-          results (sql/insert! db-con :menu_items menu-items-ids)])))
-
 (defn insert-row
   [table & {:keys [column-name column-value] :as data-insert}]
+  (prn (str "insert-row - table: " table " data-insert: " data-insert))
   (sql/with-db-connection [db-con db-spec]
     (sql/insert! db-con
                  table
@@ -148,7 +100,7 @@
        flatten
        (map (keyword "scope_identity()"))))
 
-(defn create-till-menu-items
+(defn add-till-menu-items
   [params]
   (let [[shop-name address phone menu-item-names menu-item-prices]
          (vals params)

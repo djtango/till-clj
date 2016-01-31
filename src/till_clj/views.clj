@@ -48,7 +48,7 @@
 
 (defn gen-form-rows
   [form input-num-rows]
-  (let [num-rows (- (str->num input-num-rows) 1)]
+  (let [num-rows (str->num input-num-rows)]
     (if (<= num-rows 0)
      form
      (gen-form-rows
@@ -86,13 +86,7 @@
 
 (defn add-till-menu-items
   [params]
-  (let [[shop-name address phone menu-item-names menu-item-prices]
-       (vals params)]
-    (db/add-till-to-db shop-name
-                       address
-                       phone)
-    (db/add-menu-items-to-db menu-item-names
-                             menu-item-prices)))
+  (db/add-till-menu-items params))
 
 (defn add-order-page
   []
