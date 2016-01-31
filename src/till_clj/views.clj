@@ -20,8 +20,8 @@
     " ]"])
 
 (def menu-item-line
- [:li [:input {:type "text" :name "menu" :placeholder "name"}]
-  [:input {:type "text" :name "menu" :placeholder "price"}]])
+ [:li [:input {:type "text" :name "menu_item_name" :placeholder "name"}]
+  [:input {:type "text" :name "menu_item_price" :placeholder "price"}]])
 
 (defn home-page
   []
@@ -84,14 +84,15 @@
     [:h1 "Configure your new till"]
     (new-till-form nil nil nil nil)))
 
-(defn add-till
+(defn add-till-menu-items
   [params]
-  (let [[shop-name address phone & menu-items]
+  (let [[shop-name address phone menu-item-names menu-item-prices]
        (vals params)]
     (db/add-till-to-db shop-name
-                      address
-                      phone
-                      menu-items)))
+                       address
+                       phone)
+    (db/add-menu-items-to-db menu-item-names
+                             menu-item-prices)))
 
 (defn add-order-page
   []

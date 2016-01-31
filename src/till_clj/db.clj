@@ -27,7 +27,7 @@
   []
   (sql/create-table-ddl :till_menu_items
                         [:till_id       :int :not :null]
-                        [:menu_items_id :int :not :null]))
+                        [:menu_item_id :int :not :null]))
 
 (defn add-primary-key
   [table & primary-keys]
@@ -59,7 +59,7 @@
   (if (exists? db-spec table)
     (sql/drop-table-ddl table)))
 
-(defn init-db2
+(defn init-db
   []
   (sql/db-do-commands
     db-spec
@@ -69,9 +69,9 @@
     (create-tills-table)
     (create-menu-items-table)
     (create-join-table)
-    (add-primary-key :till_menu_items :till_id :menu_items_id)
+    (add-primary-key :till_menu_items :till_id :menu_item_id)
     (add-foreign-key :till_menu_items :till_id :tills :id)
-    (add-foreign-key :till_menu_items :menu_items_id :menu_items :id)))
+    (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)))
 
 (defn new-id
   [table-name]
@@ -82,15 +82,26 @@
       (+ results 1))))
 
 (defn add-till-to-db
-  [shop-name address phone & menu]
+  [shop-name address phone]
   (sql/with-db-connection [db-con db-spec]
-    (let [new-till-id (new-id "tills")
-          results (sql/insert! db-con :tills {
-                                    :id        new-till-id
-                                    :shop_name shop-name
-                                    :address   address
-                                    :phone     phone
-                                    :menu_id   menu})])))
+    (sql/insert! db-con :tills {
+                                :shop_name shop-name
+                                :address   address
+                                :phone     phone})))
+
+(defn add-menu-items-to-db
+  [menu-item-names
+   menu-item-prices]
+  (->> (map #(sql/with-db-connection [db-con db-spec]
+               (sql/insert! db-con
+                            :menu_items {
+                                         :name  %1
+                                         :price %2
+                                         }))
+            menu-item-names
+            menu-item-prices)
+       flatten
+       (map (keyword "scope_identity()"))))
 
 (defn get-till-by-name
   [till-id]
@@ -123,3 +134,34 @@
   (sql/with-db-connection [db-con db-spec]
     (let [menu-items-ids (map-ids "menu_items" menu)
           results (sql/insert! db-con :menu_items menu-items-ids)])))
+
+(defn insert-row
+  [table & {:keys [column-name column-value] :as data-insert}]
+  (sql/with-db-connection [db-con db-spec]
+    (sql/insert! db-con
+                 table
+                 data-insert)))
+
+(defn inserted-ids
+  [db-insert-output]
+  (->> db-insert-output
+       flatten
+       (map (keyword "scope_identity()"))))
+
+(defn create-till-menu-items
+  [params]
+  (let [[shop-name address phone menu-item-names menu-item-prices]
+         (vals params)
+        inserted-till (first (inserted-ids (insert-row :tills
+                                                       :shop_name shop-name
+                                                       :address   address
+                                                       :phone     phone)))
+        inserted-menu-items (inserted-ids (map #(insert-row :menu_items
+                                                            :name  %1
+                                                            :price %2)
+                                               menu-item-names
+                                               menu-item-prices))]
+    (for [menu-item-id inserted-menu-items]
+      (insert-row :till_menu_items
+                  :till_id      inserted-till
+                  :menu_item_id menu-item-id))))

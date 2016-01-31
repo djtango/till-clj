@@ -17,7 +17,8 @@
         (views/add-menu-page params))
   (POST "/till/create"
         {params :params}
-        (views/add-till params)
+        (prn params)
+        (views/add-till-menu-items params)
         (redirect "/"))
   (GET "/order/new"
        []
