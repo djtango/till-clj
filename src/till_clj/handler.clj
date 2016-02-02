@@ -20,6 +20,16 @@
         (prn params)
         (views/add-till-menu-items params)
         (redirect "/"))
+  (GET "/till/menu/:till-id"
+       [till-id]
+       (views/menu-page till-id))
+  (GET "/till/menu/:till-id/order/new"
+       [till-id]
+       (views/add-order-page till-id))
+  (POST "/order/create"
+        {params :params}
+        (views/create-order params)
+        (redirect "/"))
   (GET "/order/new"
        []
        (views/add-order-page))

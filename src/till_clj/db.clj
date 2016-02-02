@@ -29,6 +29,13 @@
                         [:till_id       :int :not :null]
                         [:menu_item_id :int :not :null]))
 
+(defn create-orders-table
+  []
+  (sql/create-table-ddl :orders
+                        [:id      "IDENTITY"     :primary :key]
+                        [:date    "DATE"         :not :null]
+                        [:server  "VARCHAR(255)" :not :null]))
+
 (defn add-primary-key
   [table & primary-keys]
   (format "ALTER TABLE %s ADD PRIMARY KEY (%s)"
@@ -73,12 +80,11 @@
     (add-foreign-key :till_menu_items :till_id :tills :id)
     (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)))
 
-(defn get-till-by-name
+(defn get-till-menu-items
   [till-id]
   (sql/with-db-connection [db-con db-spec]
-    (let [results (sql/query db-con ["SELECT * FROM tills WHERE id = ?" till-id])]
-      (assert (= (count results) 1))
-      (first results))))
+    (let [results (sql/query db-con ["SELECT * FROM tills t INNER JOIN till_menu_items tmi on tmi.till_id = t.id INNER JOIN menu_items mi on mi.id = tmi.menu_item_id WHERE t.id = ?" till-id])]
+      results)))
 
 (defn get-all-tills
   []
@@ -94,9 +100,16 @@
                  table
                  data-insert)))
 
+(defn insert-rows
+  [table keys-vec & collections]
+  (let [table-rows (map #(zipmap keys-vec %) (apply map list collections))]
+    (sql/with-db-connection [db-con db-spec]
+      (apply (partial sql/insert! db-con table) table-rows))))
+
 (defn inserted-ids
   [db-insert-output]
   (->> db-insert-output
+       doall
        flatten
        (map (keyword "scope_identity()"))))
 
@@ -108,12 +121,14 @@
                                                        :shop_name shop-name
                                                        :address   address
                                                        :phone     phone)))
-        inserted-menu-items (inserted-ids (map #(insert-row :menu_items
-                                                            :name  %1
-                                                            :price %2)
-                                               menu-item-names
-                                               menu-item-prices))]
+        inserted-menu-items (apply list (inserted-ids (insert-rows :menu_items
+                                                        [:name :price]
+                                                        menu-item-names
+                                                        menu-item-prices)))]
+    (prn (str "inserted-till: " inserted-till))
+    (prn (str "inserted-menu-items: " inserted-menu-items))
     (for [menu-item-id inserted-menu-items]
       (insert-row :till_menu_items
                   :till_id      inserted-till
                   :menu_item_id menu-item-id))))
+

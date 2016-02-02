@@ -88,17 +88,57 @@
   [params]
   (db/add-till-menu-items params))
 
-(defn add-order-page
-  []
-  (hic-p/html5
-    (gen-page-head "Add a new order")
-    [:h1 "Place a new order"]
-    [:form {:action "/order/new" :method "POST"}
-     [:p "Server Name: " [:input {:type "text" :name "server_name" :placeholder "Enter your name here"}]]
-     [:ul
-      [:li "Menu Item 1: "
-       [:input {:type "text" :name "quantity" :placeholder "Order quantity"}]]
-      [:li "Menu Item 2: "
-       [:input {:type "text" :name "quantity" :placeholder "Order quantity"}]]]
-     [:p [:input {:type "submit" :value "Place order!"}]]]))
+(defn gen-menu-rows
+  [menu-rows till-data & [extra-html]]
+  (let [current-row (first till-data)]
+    (if (= till-data '())
+     menu-rows
+     (gen-menu-rows (conj menu-rows [:tr [:td (str (current-row :name)) [:input {:type "hidden" :name "menu_item_id" :value (str (current-row :id_2))}]]
+                                     [:td (str (current-row :price))]
+                                     (if extra-html
+                                       extra-html)])
+                    (rest till-data)
+                    extra-html))))
 
+(defn menu-page
+  [till-id]
+  (let [till-data (db/get-till-menu-items till-id)
+        first-till (first till-data)]
+    (hic-p/html5
+      (gen-page-head (first-till :shop_name))
+      header-links
+      [:h1 (first-till :shop_name) ":"]
+      [:p "Restaurant id: " (str (first-till :id))]
+      [:p "Address: " (first-till :address)]
+      [:p "Phone: " (first-till :phone)]
+      [:p "Menu: "
+       (gen-menu-rows [:table] till-data)])))
+
+(defn add-order-page
+  ([]
+   (hic-p/html5
+     (gen-page-head "Add a new order")
+     [:h1 "Place a new order"]
+     [:form {:action "/order/new" :method "POST"}
+      [:p "Server Name: " [:input {:type "text" :name "server_name" :placeholder "Enter your name here"}]]
+      [:ul
+       [:li "Menu Item 1: "
+        [:input {:type "text" :name "quantity" :placeholder "Order quantity"}]]
+       [:li "Menu Item 2: "
+        [:input {:type "text" :name "quantity" :placeholder "Order quantity"}]]]
+      [:p [:input {:type "submit" :value "Place order!"}]]]))
+  ([till-id]
+   (let
+     [till-data (db/get-till-menu-items till-id)]
+     (hic-p/html5
+      (gen-page-head "Add a new order")
+      [:h1 "Place a new order"]
+      [:form {:action "/order/create" :method "POST"}
+       [:p "Server Name: " [:input {:type "text" :name "server_name" :placeholder "Enter your name here"}]]
+       [:p
+        (gen-menu-rows [:table] till-data [:td [:input {:type "number" :value 0}]])]
+       [:p [:input {:type "submit" :value "Place your order!"}]]]))))
+
+(defn create-order
+  [params]
+  (prn (str "create-order: " params)))
