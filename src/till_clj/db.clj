@@ -23,10 +23,10 @@
                         [:name  "VARCHAR(32)"]
                         [:price "DECIMAL(20,2)"]))
 
-(defn create-join-table
+(defn create-till-menu-items-table
   []
   (sql/create-table-ddl :till_menu_items
-                        [:till_id       :int :not :null]
+                        [:till_id      :int :not :null]
                         [:menu_item_id :int :not :null]))
 
 (defn create-orders-table
@@ -34,7 +34,15 @@
   (sql/create-table-ddl :orders
                         [:id      "IDENTITY"     :primary :key]
                         [:date    "DATE"         :not :null]
-                        [:server  "VARCHAR(255)" :not :null]))
+                        [:server  "VARCHAR(255)" :not :null]
+                        [:till_id :int           :not :null]))
+
+(defn create-order-menu-items-table
+  []
+  (sql/create-table-ddl :order_menu_items
+                        [:order_id     :int :not :null]
+                        [:menu_item_id :int :not :null]
+                        [:quantity     :int :not :null]))
 
 (defn add-primary-key
   [table & primary-keys]
@@ -73,12 +81,20 @@
     (drop-if-exists db-spec :tills)
     (drop-if-exists db-spec :menu_items)
     (drop-if-exists db-spec :till_menu_items)
+    (drop-if-exists db-spec :orders)
+    (drop-if-exists db-spec :order_menu_items)
     (create-tills-table)
     (create-menu-items-table)
-    (create-join-table)
+    (create-till-menu-items-table)
+    (create-orders-table)
+    (create-order-menu-items-table)
     (add-primary-key :till_menu_items :till_id :menu_item_id)
     (add-foreign-key :till_menu_items :till_id :tills :id)
-    (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)))
+    (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
+    (add-primary-key :order_menu_items :order_id :menu_item_id)
+    (add-foreign-key :orders :till_id :tills :id)
+    (add-foreign-key :order_menu_items :order_id :orders :id)
+    (add-foreign-key :order_menu_items :menu_item_id :menu_items :id)))
 
 (defn get-till-menu-items
   [till-id]
@@ -103,6 +119,7 @@
 (defn insert-rows
   [table keys-vec & collections]
   (let [table-rows (map #(zipmap keys-vec %) (apply map list collections))]
+    (prn (str "insert-rows - table: " table " keys-vec: " keys-vec " collections: " collections))
     (sql/with-db-connection [db-con db-spec]
       (apply (partial sql/insert! db-con table) table-rows))))
 
@@ -127,8 +144,11 @@
                                                         menu-item-prices)))]
     (prn (str "inserted-till: " inserted-till))
     (prn (str "inserted-menu-items: " inserted-menu-items))
-    (for [menu-item-id inserted-menu-items]
+    (doseq [menu-item-id inserted-menu-items]
       (insert-row :till_menu_items
                   :till_id      inserted-till
                   :menu_item_id menu-item-id))))
 
+;; (defn add-order-menu-items
+;;   [params]
+;;   (let [[]]))
