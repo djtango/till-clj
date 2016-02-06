@@ -1,7 +1,8 @@
 (ns till-clj.views
   (:require [clojure.string :as str]
             [hiccup.page :as hic-p]
-            [till-clj.db :as db]))
+            [till-clj.db :as db]
+            [till-clj.totals :as t]))
 
 (defn gen-page-head
   [title]
@@ -40,15 +41,9 @@
    [:p "Number of menu items:" [:input {:type "number" :name "num_menu_items" :placeholder "number of menu items" :value 5}]]
    [:p [:input {:type "submit" :value "Save and continue"}]]])
 
-(defn str->num
-  [num-string]
-  (if (string? num-string)
-    (read-string num-string)
-    num-string))
-
 (defn gen-form-rows
   [form input-num-rows]
-  (let [num-rows (str->num input-num-rows)]
+  (let [num-rows (t/str->num input-num-rows)]
     (if (<= num-rows 0)
      form
      (gen-form-rows
@@ -93,7 +88,9 @@
   (let [current-row (first till-data)]
     (if (= till-data '())
      menu-rows
-     (gen-menu-rows (conj menu-rows [:tr [:td (str (current-row :name)) [:input {:type "hidden" :name "menu_item_id" :value (str (current-row :id_2))}]]
+     (gen-menu-rows (conj menu-rows [:tr [:td (str (current-row :name))
+                                          [:input {:type "hidden" :name "menu_item_id" :value (str (current-row :id_2))}]
+                                          [:input {:type "hidden" :name "menu_item_price" :value (current-row :price)}]]
                                      [:td (str (current-row :price))]
                                      (if extra-html
                                        extra-html)])
@@ -136,9 +133,58 @@
       [:form {:action "/order/create" :method "POST"}
        [:p "Server Name: " [:input {:type "text" :name "server_name" :placeholder "Enter your name here"}]]
        [:p
-        (gen-menu-rows [:table] till-data [:td [:input {:type "number" :value 0}]])]
-       [:p [:input {:type "submit" :value "Place your order!"}]]]))))
+        (gen-menu-rows [:table] till-data [:td [:input {:type "number" :name "quantity" :value 0}]])]
+       [:p [:input {:type "hidden" :name "till_id" :value till-id}]
+        [:input {:type "submit" :value "Place your order!"}]]]))))
 
 (defn create-order
   [params]
-  (prn (str "create-order: " params)))
+  (prn params)
+  (db/add-order-menu-items params))
+
+(defn gen-order-rows
+  [order-rows order-data & [extra-html]]
+  (let [current-row (first order-data)]
+    (if (= order-data '())
+      order-rows
+      (gen-order-rows (conj order-rows [:tr [:td (str (current-row :name))]
+                                        [:td (str (current-row :quantity))]
+                                        (if extra-html
+                                          (extra-html current-row))])
+                      (rest order-data)
+                      extra-html))))
+
+(defn order-page
+  [order-id]
+  (let [order-data (db/get-order-menu-items order-id)
+        first-row (first order-data)]
+    (hic-p/html5
+      (gen-page-head (first-row :shop_name))
+      header-links
+      [:h1 "Order " order-id ":"]
+      [:p "Restaurant id: " (first-row :till_id)]
+      [:p "Restaurant Name: " (first-row :shop_name)]
+      [:p "Date of order: " (first-row :date)]
+      [:p "Server Name: " (first-row :server)]
+      [:p "Ordered items: "
+       (gen-order-rows [:table] order-data)]
+      [:p "Order total: £" (first-row :total)]
+      [:a {:href (str order-id "/receipt")} "Print receipt"])))
+
+(defn print-receipt
+  [order-id]
+  (let [order-data (t/assoc-subtotals (db/get-order-menu-items order-id))
+        first-row (first order-data)]
+    (hic-p/html5
+      (gen-page-head (str "Order " order-id ": receipt"))
+      header-links
+      [:p (first-row :date)]
+      [:p (first-row :shop_name)]
+      [:p (first-row :address)]
+      [:p (first-row :phone)]
+      [:p (first-row :server)]
+      [:p (gen-order-rows
+            [:table]
+            order-data
+            (fn [row] (list [:td " x "]
+                            [:td (:subtotal row)])))])))

@@ -28,11 +28,17 @@
        (views/add-order-page till-id))
   (POST "/order/create"
         {params :params}
-        (views/create-order params)
-        (redirect "/"))
+        (let [order-id (views/create-order params)]
+          (redirect (str "/order/" order-id))))
   (GET "/order/new"
        []
        (views/add-order-page))
+  (GET "/order/:order-id"
+       [order-id]
+       (views/order-page order-id))
+  (GET "/order/:order-id/receipt"
+       [order-id]
+       (views/print-receipt order-id))
   (route/not-found "Not Found"))
 
 (def app

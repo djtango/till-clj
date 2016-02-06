@@ -1,6 +1,7 @@
 (ns till-clj.db
   (:require [clojure.java.jdbc :as sql]
-            [clojure.string :as s]))
+            [clojure.string :as s]
+            [till-clj.totals :as t]))
 
 (def db-spec {:classname "org.h2.Driver"
               :subprotocol "h2"
@@ -32,10 +33,11 @@
 (defn create-orders-table
   []
   (sql/create-table-ddl :orders
-                        [:id      "IDENTITY"     :primary :key]
-                        [:date    "DATE"         :not :null]
-                        [:server  "VARCHAR(255)" :not :null]
-                        [:till_id :int           :not :null]))
+                        [:id      "IDENTITY"      :primary :key]
+                        [:total   "DECIMAL(20,2)" :not :null]
+                        [:date    "DATE"          :not :null]
+                        [:server  "VARCHAR(255)"  :not :null]
+                        [:till_id :int            :not :null]))
 
 (defn create-order-menu-items-table
   []
@@ -138,17 +140,42 @@
                                                        :shop_name shop-name
                                                        :address   address
                                                        :phone     phone)))
-        inserted-menu-items (apply list (inserted-ids (insert-rows :menu_items
-                                                        [:name :price]
-                                                        menu-item-names
-                                                        menu-item-prices)))]
+        inserted-menu-items (inserted-ids (insert-rows :menu_items
+                                                       [:name :price]
+                                                       menu-item-names
+                                                       menu-item-prices))]
     (prn (str "inserted-till: " inserted-till))
     (prn (str "inserted-menu-items: " inserted-menu-items))
-    (doseq [menu-item-id inserted-menu-items]
-      (insert-row :till_menu_items
-                  :till_id      inserted-till
-                  :menu_item_id menu-item-id))))
+    (insert-rows :till_menu_items
+                 [:till_id :menu_item_id]
+                 (repeat (count inserted-menu-items) inserted-till)
+                 inserted-menu-items)))
 
-;; (defn add-order-menu-items
-;;   [params]
-;;   (let [[]]))
+(defn time-now
+  []
+  (java.util.Date.))
+
+(defn add-order-menu-items
+  [params]
+  (let [[server menu-item-ids menu-item-prices quantities till-id]
+        (vals params)
+        total (t/total menu-item-prices quantities)
+        date-time (time-now)
+        inserted-order (first (inserted-ids (insert-row :orders
+                                                        :total   total
+                                                        :date    date-time
+                                                        :server  server
+                                                        :till_id till-id)))
+        drop-zero-rows (fn [coll] ((partial t/drop-zero-rows quantities) coll))]
+    (insert-rows :order_menu_items
+                 [:order_id :menu_item_id :quantity]
+                 (repeat (count (drop-zero-rows menu-item-ids)) inserted-order)
+                 (drop-zero-rows menu-item-ids)
+                 (drop-zero-rows quantities))
+    inserted-order))
+
+(defn get-order-menu-items
+  [order-id]
+  (sql/with-db-connection [db-con db-spec]
+    (let [results (sql/query db-con ["SELECT * FROM orders o INNER JOIN order_menu_items omi on omi.order_id = o.id INNER JOIN menu_items mi on mi.id = omi.menu_item_id INNER JOIN tills t on t.id = o.till_id WHERE o.id = ?" order-id])]
+      results)))
