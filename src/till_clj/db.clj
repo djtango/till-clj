@@ -125,6 +125,16 @@
     (sql/with-db-connection [db-con db-spec]
       (apply (partial sql/insert! db-con table) table-rows))))
 
+(defn update-till
+  [till-id shop-name address phone]
+  (sql/with-db-connection [db-con db-spec]
+    (sql/update! db-con
+                 :tills
+                 {:shop_name  shop-name
+                  :address    address
+                  :phone      phone}
+                 ["id = ?" till-id])))
+
 (defn inserted-ids
   [db-insert-output]
   (->> db-insert-output
@@ -144,8 +154,6 @@
                                                        [:name :price]
                                                        menu-item-names
                                                        menu-item-prices))]
-    (prn (str "inserted-till: " inserted-till))
-    (prn (str "inserted-menu-items: " inserted-menu-items))
     (insert-rows :till_menu_items
                  [:till_id :menu_item_id]
                  (repeat (count inserted-menu-items) inserted-till)

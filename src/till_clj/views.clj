@@ -18,6 +18,8 @@
     [:a {:href "/till/new"} "Configure a new till"]
     " | "
     [:a {:href "/order/new"} "Start a new order"]
+    " | "
+    [:a {:href "/till/get"} "Manage your till"]
     " ]"])
 
 (def menu-item-line
@@ -32,9 +34,20 @@
     [:h1 "Home"]
     [:p "Welcome to Till-Clj, a Clojure Webapp built on Compojure for handling orders and receipts for restaurants!"]))
 
+(defn get-till-page
+  []
+  (hic-p/html5
+    (gen-page-head "Enter your till ID")
+    header-links
+    [:h1 "Manage your till:"]
+    [:p "Please enter your till id:"
+     [:form {:action "/till/get" :method "POST"}
+      [:input {:type "text" :name "till_id" :placeholder "till-id"}]
+      [:input {:type "submit" :value "Submit"}]]]))
+
 (defn new-till-form
-  [shop-name address phone menu-items]
-  [:form {:action "/till/menu/new" :method "POST"}
+  [shop-name address phone path]
+  [:form {:action path :method "POST"}
    [:p "Shop Name: " [:input {:type "text" :name "shop-name" :value shop-name :placeholder "your restaurant"}]]
    [:p "Address: " [:input {:type "text" :name "address" :value address :placeholder "restaurant address"}]]
    [:p "Phone: " [:input {:type "text" :name "phone" :value phone :placeholder "0123456789"}]]
@@ -77,11 +90,38 @@
     (gen-page-head "Add a till")
     header-links
     [:h1 "Configure your new till"]
-    (new-till-form nil nil nil nil)))
+    (new-till-form nil nil nil "/till/menu/new")))
 
 (defn add-till-menu-items
   [params]
   (db/add-till-menu-items params))
+
+(defn edit-till-page
+  [till-id]
+  (let [till-data (db/get-till-menu-items till-id)
+        first-row (first till-data)
+        shop-name (:shop_name first-row)
+        address   (:address first-row)
+        phone     (:phone first-row)]
+    (hic-p/html5
+      (gen-page-head "Edit your till")
+      header-links
+      [:h1 "Edit your till"]
+      [:form {:action "/till/update" :method "POST"}
+       [:input {:type "hidden" :name "till_id" :value till-id}]
+       [:p "Shop Name: " [:input {:type "text" :name "shop-name" :value shop-name :placeholder "your restaurant"}]]
+       [:p "Address: " [:input {:type "text" :name "address" :value address :placeholder "restaurant address"}]]
+       [:p "Phone: " [:input {:type "text" :name "phone" :value phone :placeholder "0123456789"}]]
+       [:p [:input {:type "submit" :value "Submit"}]]])))
+
+(defn update-till
+  [params]
+  (let [[till-id shop-name address phone]
+        (vals params)]
+    (db/update-till till-id
+                    shop-name
+                    address
+                    phone)))
 
 (defn gen-menu-rows
   [menu-rows till-data & [extra-html]]
@@ -109,21 +149,17 @@
       [:p "Address: " (first-till :address)]
       [:p "Phone: " (first-till :phone)]
       [:p "Menu: "
-       (gen-menu-rows [:table] till-data)])))
+       (gen-menu-rows [:table] till-data)]
+      [:p [:a {:href (str "/till/edit/" till-id)} "Edit your till"]])))
 
 (defn add-order-page
   ([]
    (hic-p/html5
      (gen-page-head "Add a new order")
      [:h1 "Place a new order"]
-     [:form {:action "/order/new" :method "POST"}
-      [:p "Server Name: " [:input {:type "text" :name "server_name" :placeholder "Enter your name here"}]]
-      [:ul
-       [:li "Menu Item 1: "
-        [:input {:type "text" :name "quantity" :placeholder "Order quantity"}]]
-       [:li "Menu Item 2: "
-        [:input {:type "text" :name "quantity" :placeholder "Order quantity"}]]]
-      [:p [:input {:type "submit" :value "Place order!"}]]]))
+     [:form {:action "/till/menu/get/order" :method "POST"}
+      [:p "Please enter your till id:" [:input {:type "text" :name "till_id" :placeholder "till id"}]]
+      [:p [:input {:type "submit" :value "Submit"}]]]))
   ([till-id]
    (let
      [till-data (db/get-till-menu-items till-id)]
@@ -178,13 +214,14 @@
     (hic-p/html5
       (gen-page-head (str "Order " order-id ": receipt"))
       header-links
-      [:p (first-row :date)]
-      [:p (first-row :shop_name)]
-      [:p (first-row :address)]
-      [:p (first-row :phone)]
+      [:p (first-row :date)
+       [:br] (first-row :shop_name)]
+      [:p (first-row :address)
+       [:br] "Phone: "(first-row :phone)]
       [:p (first-row :server)]
       [:p (gen-order-rows
             [:table]
             order-data
             (fn [row] (list [:td " x "]
-                            [:td (:subtotal row)])))])))
+                            [:td (:subtotal row)])))]
+      [:p [:table [:tr [:td "Total:"] [:td "£"(first-row :total)]]]])))
