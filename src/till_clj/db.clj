@@ -46,7 +46,8 @@
     (h/insert-rows :till_menu_items
                    [:till_id :menu_item_id]
                    (repeat (count inserted-menu-items) inserted-till)
-                   inserted-menu-items)))
+                   inserted-menu-items)
+    inserted-till))
 
 (defn add-order-menu-items
   [params]

@@ -19,8 +19,8 @@
   (let [zero-indexes (set (find-zeroes ref-coll))]
     (keep-indexed
       (fn [index value]
-        (if (not (contains? zero-indexes
-                            index))
+        (if-not (contains? zero-indexes
+                           index)
           value))
       coll)))
 
