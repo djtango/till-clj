@@ -1,6 +1,6 @@
 (ns till-clj.db.init
   (:require [clojure.java.jdbc :as sql]
-            [environ :refer [env]]
+            [environ.core :refer [env]]
             [clojure.string :as s]))
 
 (def db-spec {:classname "org.h2.Driver"
@@ -8,45 +8,34 @@
               :user "till-clj-ring"
               :subname (env :db-subname)
               :password ""})
-
-(defmulti create-table identity)
-
-(defmethod create-table :tills
-  [table]
-  (sql/create-table-ddl table
-                        [:id        "IDENTITY" :primary :key]
+(def table-configs
+  {:tills             '([:id        "IDENTITY" :primary :key]
                         [:shop_name "VARCHAR(32)"]
                         [:address   "VARCHAR(255)"]
-                        [:phone     "VARCHAR(32)"]))
+                        [:phone     "VARCHAR(32)"])
 
-(defmethod create-table :menu_items
-  [table]
-  (sql/create-table-ddl table
-                        [:id    "IDENTITY" :primary :key]
-                        [:name  "VARCHAR(32)"]
-                        [:price "DECIMAL(20,2)"]))
+   :menu_items        '([:id        "IDENTITY" :primary :key]
+                        [:name      "VARCHAR(32)"]
+                        [:price     "DECIMAL(20,2)"])
 
-(defmethod create-table :till_menu_items
-  [table]
-  (sql/create-table-ddl table
-                        [:till_id      :int :not :null]
-                        [:menu_item_id :int :not :null]))
+   :till_menu_items   '([:till_id      :int :not :null]
+                        [:menu_item_id :int :not :null])
 
-(defmethod create-table :orders
-  [table]
-  (sql/create-table-ddl table
-                        [:id      "IDENTITY"      :primary :key]
-                        [:total   "DECIMAL(20,2)" :not :null]
-                        [:date    "DATE"          :not :null]
-                        [:server  "VARCHAR(255)"  :not :null]
-                        [:till_id :int            :not :null]))
+   :orders            '([:id        "IDENTITY"      :primary :key]
+                        [:total     "DECIMAL(20,2)" :not :null]
+                        [:date      "DATE"          :not :null]
+                        [:server    "VARCHAR(255)"  :not :null]
+                        [:till_id   :int            :not :null])
 
-(defmethod create-table :order_menu_items
-  [table]
-  (sql/create-table-ddl table
-                        [:order_id     :int :not :null]
+   :order_menu_items  '([:order_id     :int :not :null]
                         [:menu_item_id :int :not :null]
-                        [:quantity     :int :not :null]))
+                        [:quantity     :int :not :null])})
+
+(defn create-table [table]
+  (apply sql/create-table-ddl
+         table
+         (table table-configs)))
+
 (defn add-primary-key
   [table & primary-keys]
   (format "ALTER TABLE %s ADD PRIMARY KEY (%s)"
@@ -80,9 +69,31 @@
 (defn create-if-not-exists
   [db-spec table]
   (if-not (exists? db-spec table)
-    (sql/create)))
+    (create-table table)))
 
 (defn init-db
+  []
+  (sql/db-do-commands
+    db-spec
+    (create-if-not-exists db-spec :tills)
+    (create-if-not-exists db-spec :menu_items)
+    (create-if-not-exists db-spec :till_menu_items)
+    (create-if-not-exists db-spec :orders)
+    (create-if-not-exists db-spec :order_menu_items)
+    (create-table :tills)
+    (create-table :menu_items)
+    (create-table :till_menu_items)
+    (create-table :orders)
+    (create-table :order_menu_items)
+    (add-primary-key :till_menu_items :till_id :menu_item_id)
+    (add-foreign-key :till_menu_items :till_id :tills :id)
+    (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
+    (add-primary-key :order_menu_items :order_id :menu_item_id)
+    (add-foreign-key :orders :till_id :tills :id)
+    (add-foreign-key :order_menu_items :order_id :orders :id)
+    (add-foreign-key :order_menu_items :menu_item_id :menu_items :id)))
+
+(defn db-migrate
   []
   (sql/db-do-commands
     db-spec
@@ -91,11 +102,11 @@
     (drop-if-exists db-spec :till_menu_items)
     (drop-if-exists db-spec :orders)
     (drop-if-exists db-spec :order_menu_items)
-    (create-tills-table)
-    (create-menu-items-table)
-    (create-till-menu-items-table)
-    (create-orders-table)
-    (create-order-menu-items-table)
+    (create-table :tills)
+    (create-table :menu_items)
+    (create-table :till_menu_items)
+    (create-table :orders)
+    (create-table :order_menu_items)
     (add-primary-key :till_menu_items :till_id :menu_item_id)
     (add-foreign-key :till_menu_items :till_id :tills :id)
     (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
