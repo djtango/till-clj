@@ -31,7 +31,7 @@
       (vh/title-banner "Add your menu")
       [:h1 "Configure your menu"]
       [:form {:action "/till/create" :method "POST"}
-       [:input {:type "hidden" :name "menu_name" :value shop-name}]
+       [:input {:type "hidden" :name "shop_name" :value shop-name}]
        [:input {:type "hidden" :name "address" :value address}]
        [:input {:type "hidden" :name "phone" :value phone}]
        (vh/menu-item-rows num-rows)

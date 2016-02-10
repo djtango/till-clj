@@ -49,7 +49,7 @@
 (defn menu-item-rows
   [num-rows]
   (gen-form-rows
-    [:ul menu-item-line]
+    [:ul]
     num-rows))
 
 (defn gen-menu-rows

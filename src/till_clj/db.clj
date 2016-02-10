@@ -1,12 +1,13 @@
 (ns till-clj.db
   (:require [clojure.java.jdbc :as sql]
+            [environ.core :refer [env]]
             [till-clj.totals :as t]
             [till-clj.db.helpers :as h]))
 
 (def db-spec {:classname "org.h2.Driver"
               :subprotocol "h2"
               :user "till-clj-ring"
-              :subname "~/till-clj"
+              :subname (env :db-subname)
               :password ""})
 
 (defn get-till-menu-items
