@@ -7,9 +7,6 @@
 
 (describe "Preparing an order"
   (with-all response (GET "/order/new"))
-  (it "GET to /order/new responds with 200"
-    (should= 200
-             (:status @response)))
   (it "User is prompted with form to enter till id"
     (should-contain "name=\"till_id\""
                     (:body @response)))
@@ -57,9 +54,6 @@
       (let [results (till-clj.db/get-till-menu-items 1)]
         (should= 1
                  (:id (first results)))))
-  (it "GET to /till/menu/1/order/new responds with 200"
-      (should= 200
-               (:status @response)))
   (it "User should be prompted to enter their name"
       (should-contain "name=\"server_name"
                       (:body @response)))
@@ -83,23 +77,69 @@
                               (:body @response))
                  (match-count #"name=\"quantity\"\stype=\"number\""
                               (:body @response))))
-    (it "Full menu content is displayed correctly"
-        (should-contain "Chicken & Bacon Ranch Melt"  (:body @response))
-        (should-contain "SUBWAY MELT"                 (:body @response))
-        (should-contain "Steak & Cheese"              (:body @response))
-        (should-contain "Veggie Patty"                (:body @response))
-        (should-contain "Meatball Marinara"           (:body @response))
-        (should-contain "Italian B.M.T."              (:body @response)))
-    (it "Prices are displayed correctly"
-        (should-contain "2.99"                        (:body @response))
-        (should-contain "3.15"                        (:body @response))
-        (should-contain "3.55"                        (:body @response))
-        (should-contain "3.99"                        (:body @response))
-        (should-contain "3.99"                        (:body @response))
-        (should-contain "4.20"                        (:body @response)))
     (it "Menu contents correctly retrieved and prices correctly assigned"
         (should= 1 (match-count
                      #"Chicken\s&\sBacon\sRanch\sMelt.*2\.99.*SUBWAY\sMELT.*3\.15.*Steak\s&\sCheese.*3\.55.*Veggie\sPatty.*3\.99.*Meatball\sMarinara.*3\.99.*Italian\sB\.M\.T\..*4\.20"
                                 (:body @response))))))
+
+(describe
+  "Confirming and viewing the order"
+  (with-all! test-data {:shop_name "Subway"
+                        :address   "76 Joel Street"
+                        :phone     "01923 835890"
+                        :menu_item_names ["Chicken & Bacon Ranch Melt"
+                                          "SUBWAY MELT"
+                                          "Steak & Cheese"
+                                          "Veggie Patty"
+                                          "Meatball Marinara"
+                                          "Italian B.M.T."]
+                        :menu_item_prices [2.99
+                                           3.15
+                                           3.55
+                                           3.99
+                                           3.99
+                                           4.20]})
+  (with-all! params {:server_name "Deon"
+                     :menu_item_id    [1    2    3    4    5    6]
+                     :menu_item_price [2.99 3.15 3.55 3.99 3.99 4.20]
+                     :quantity        [0    1    2    0    3    0]
+                     :till_id         1})
+  (before-all till-clj.db.init/db-migrate)
+  (before-all (till-clj.db/add-till-menu-items! @test-data))
+  (with-all response (POST "/order/create"
+                           @params))
+  (it "POST of the order params to /order/create should launch a redirect"
+      (should= 302
+               (:status @response)))
+  (it "Page displays the restaurant id"
+      (should= "http://localhost/order/1"
+               (-> @response
+                   :headers
+                   (get "Location"))))
+  (context "Viewing the order"
+    (with-all response (GET "/order/1"))
+    (it "Page displays the restaurant name"
+        (should-contain "Subway"
+                        (:body @response)))
+    (it "Page displays date of order"
+        (should-contain "2016-02-11"
+                        (:body @response)))
+    (it "Page displays server's name"
+        (should-contain "Deon"
+                        (:body @response)))
+    (it "Page displays list of ordered items"
+        (should= 3
+                 (match-count #"\<tr\>"
+                              (:body @response))))
+    (it "Page displays the quantities of ordered items"
+        (should= 1
+                 (match-count #"SUBWAY\sMELT.*1.*Steak\s&\sCheese.*2.*Meatball\sMarinara.*3"
+                              (:body @response))))
+    (it "Page displays the order total"
+        (should-contain "£22.22"
+                        (:body @response)))
+    (it "Page links to printing a receipt for the order"
+        (should-contain "href=\"1/receipt\""
+                        (:body @response)))))
 
 (run-specs)

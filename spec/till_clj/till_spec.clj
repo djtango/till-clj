@@ -57,10 +57,44 @@
         (should= (match-count #"menu_item_name" (:body @response))
                  (match-count #"menu_item_price" (:body @response))))))
 
-;; (describe "Adding to the database"
-;;   (xit "Should add the till to the db")
-;;   (xit "Should add the menu items to the db")
-;;   (xit "Should add the join rows")
-;;   (xit "Should redirect the user to the correct page"))
+(describe
+  "Adding to the database"
+  (before-all (till-clj.db.init/db-migrate))
+  (after-all (till-clj.db.init/db-migrate))
+  (with-all! params {:shop_name "Subway"
+                     :address   "76 Joel Street"
+                     :phone     "01923 835890"
+                     :menu_item_names ["Chicken & Bacon Ranch Melt"
+                                       "SUBWAY MELT"
+                                       "Steak & Cheese"
+                                       "Veggie Patty"
+                                       "Meatball Marinara"
+                                       "Italian B.M.T."]
+                     :menu_item_prices [2.99
+                                        3.15
+                                        3.55
+                                        3.99
+                                        3.99
+                                        4.20]})
+  (with-all response (POST "/till/create"
+                           @params))
+  (it "POST with params /till/create launches responds with a redirect"
+      (should= 302
+               (:status @response)))
+  (it "redirect URL points to the created till"
+      (should= "http://localhost/till/menu/1"
+               (-> @response
+                   :headers
+                   (get "Location"))))
+  (context "Redirected to till page:"
+    (with response (GET "/till/menu/1"))
+    (it "Page should display the till added to the db"
+      (should= 1
+        (match-count #"Subway.*76\sJoel\sStreet.*01923\s835890"
+                     (:body @response))))
+    (it "Page should display the menu items added to the db"
+      (should= 1
+               (match-count #"Chicken\s&\sBacon\sRanch\sMelt.*2\.99.*SUBWAY\sMELT.*3\.15.*Steak\s&\sCheese.*3\.55.*Veggie\sPatty.*3\.99.*Meatball\sMarinara.*3\.99.*Italian\sB\.M\.T\..*4\.20"
+                            (:body @response))))))
 
 (run-specs)

@@ -56,12 +56,14 @@
   [menu-rows till-data & [extra-html]]
   (let [current-row (first till-data)]
     (if (seq till-data)
-     (gen-menu-rows (conj menu-rows [:tr [:td (str (current-row :name))
-                                          [:input {:type "hidden" :name "menu_item_id" :value (str (:id_2 current-row))}]
-                                          [:input {:type "hidden" :name "menu_item_price" :value (:price current-row)}]]
-                                     [:td (str (:price current-row))]
-                                     (if extra-html
-                                       extra-html)])
+     (gen-menu-rows (conj menu-rows
+                          [:tr
+                           [:td (str (current-row :name))
+                            [:input {:type "hidden" :name "menu_item_id" :value (str (:id_2 current-row))}]
+                            [:input {:type "hidden" :name "menu_item_price" :value (:price current-row)}]]
+                           [:td (str (:price current-row))]
+                           (if extra-html
+                             extra-html)])
                     (rest till-data)
                     extra-html)
       menu-rows)))
@@ -72,7 +74,8 @@
   [order-rows order-data & [extra-html]]
   (let [current-row (first order-data)]
     (if (seq order-data)
-      (gen-order-rows (conj order-rows [:tr [:td (str (current-row :name))]
+      (gen-order-rows (conj order-rows [:tr
+                                        [:td (str (current-row :name))]
                                         [:td (str (current-row :quantity))]
                                         (if extra-html
                                           (extra-html current-row))])
