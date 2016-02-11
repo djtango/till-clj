@@ -22,7 +22,7 @@
     (let [results (sql/query db-con ["SELECT * FROM tills"])]
       results)))
 
-(defn update-till
+(defn update-till!
   [till-id shop-name address phone]
   (sql/with-db-connection [db-con db-spec]
     (sql/update! db-con
@@ -32,7 +32,7 @@
                   :phone      phone}
                  ["id = ?" till-id])))
 
-(defn add-till-menu-items
+(defn add-till-menu-items!
   [params]
   (let [[shop-name address phone menu-item-names menu-item-prices]
          (vals params)
@@ -50,7 +50,7 @@
                    inserted-menu-items)
     inserted-till))
 
-(defn add-order-menu-items
+(defn add-order-menu-items!
   [params]
   (let [[server menu-item-ids menu-item-prices quantities till-id]
         (vals params)

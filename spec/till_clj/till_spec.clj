@@ -57,4 +57,10 @@
         (should= (match-count #"menu_item_name" (:body @response))
                  (match-count #"menu_item_price" (:body @response))))))
 
+;; (describe "Adding to the database"
+;;   (xit "Should add the till to the db")
+;;   (xit "Should add the menu items to the db")
+;;   (xit "Should add the join rows")
+;;   (xit "Should redirect the user to the correct page"))
+
 (run-specs)

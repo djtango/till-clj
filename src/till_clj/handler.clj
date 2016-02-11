@@ -48,13 +48,13 @@
   (GET "/till/menu/:till-id/order/new"
        [till-id]
        (views/add-order-page till-id))
-  (POST "/order/create"
-        {params :params}
-        (let [order-id (views/create-order params)]
-          (redirect (str "/order/" order-id))))
   (GET "/order/new"
        []
        (views/add-order-page))
+  (POST "/order/create"
+          {params :params}
+          (let [order-id (views/create-order params)]
+            (redirect (str "/order/" order-id))))
   (GET "/order/:order-id"
        [order-id]
        (views/order-page order-id))

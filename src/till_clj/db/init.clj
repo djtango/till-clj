@@ -31,10 +31,18 @@
                         [:menu_item_id :int :not :null]
                         [:quantity     :int :not :null])})
 
+(defn log
+  [s & [return-value]]
+  ((fn []
+     (prn s)
+     (or return-value ""))))
+
 (defn create-table [table]
-  (apply sql/create-table-ddl
-         table
-         (table table-configs)))
+  ((fn []
+     (prn (str "Creating table: " table))
+     (apply sql/create-table-ddl
+            table
+            (table table-configs)))))
 
 (defn add-primary-key
   [table & primary-keys]
@@ -64,53 +72,63 @@
 (defn drop-if-exists
   [db-spec table]
   (if (exists? db-spec table)
-    (sql/drop-table-ddl table)))
+    (log (str table " dropped.")
+         (sql/drop-table-ddl table))
+    (log (str table " not found."))))
 
 (defn create-if-not-exists
   [db-spec table]
   (if-not (exists? db-spec table)
-    (create-table table)))
+    (log (str table " created.")
+         (create-table table))
+    (log (str table " already exists."))))
 
 (defn init-db
   []
-  (sql/db-do-commands
-    db-spec
-    (create-if-not-exists db-spec :tills)
-    (create-if-not-exists db-spec :menu_items)
-    (create-if-not-exists db-spec :till_menu_items)
-    (create-if-not-exists db-spec :orders)
-    (create-if-not-exists db-spec :order_menu_items)
-    (create-table :tills)
-    (create-table :menu_items)
-    (create-table :till_menu_items)
-    (create-table :orders)
-    (create-table :order_menu_items)
-    (add-primary-key :till_menu_items :till_id :menu_item_id)
-    (add-foreign-key :till_menu_items :till_id :tills :id)
-    (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
-    (add-primary-key :order_menu_items :order_id :menu_item_id)
-    (add-foreign-key :orders :till_id :tills :id)
-    (add-foreign-key :order_menu_items :order_id :orders :id)
-    (add-foreign-key :order_menu_items :menu_item_id :menu_items :id)))
+  ((fn []
+     (prn "Initialising DB...")
+     (prn (str "db-spec: " db-spec))
+     (sql/db-do-commands
+       db-spec
+       (log "Creating tables that don't exist:")
+       (create-if-not-exists db-spec :tills)
+       (create-if-not-exists db-spec :menu_items)
+       (create-if-not-exists db-spec :till_menu_items)
+       (create-if-not-exists db-spec :orders)
+       (create-if-not-exists db-spec :order_menu_items)
+       (log "Configuring table keys:")
+       (add-primary-key :till_menu_items :till_id :menu_item_id)
+       (add-foreign-key :till_menu_items :till_id :tills :id)
+       (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
+       (add-primary-key :order_menu_items :order_id :menu_item_id)
+       (add-foreign-key :orders :till_id :tills :id)
+       (add-foreign-key :order_menu_items :order_id :orders :id)
+       (add-foreign-key :order_menu_items :menu_item_id :menu_items :id)))))
 
 (defn db-migrate
   []
-  (sql/db-do-commands
-    db-spec
-    (drop-if-exists db-spec :tills)
-    (drop-if-exists db-spec :menu_items)
-    (drop-if-exists db-spec :till_menu_items)
-    (drop-if-exists db-spec :orders)
-    (drop-if-exists db-spec :order_menu_items)
-    (create-table :tills)
-    (create-table :menu_items)
-    (create-table :till_menu_items)
-    (create-table :orders)
-    (create-table :order_menu_items)
-    (add-primary-key :till_menu_items :till_id :menu_item_id)
-    (add-foreign-key :till_menu_items :till_id :tills :id)
-    (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
-    (add-primary-key :order_menu_items :order_id :menu_item_id)
-    (add-foreign-key :orders :till_id :tills :id)
-    (add-foreign-key :order_menu_items :order_id :orders :id)
-    (add-foreign-key :order_menu_items :menu_item_id :menu_items :id)))
+  ((fn []
+     (prn "Migrating DB...")
+     (prn "db-spec: " (str db-spec))
+     (sql/db-do-commands
+       db-spec
+       (log "Dropping tables:")
+       (drop-if-exists db-spec :tills)
+       (drop-if-exists db-spec :menu_items)
+       (drop-if-exists db-spec :till_menu_items)
+       (drop-if-exists db-spec :orders)
+       (drop-if-exists db-spec :order_menu_items)
+       (log "Creating tables:")
+       (create-table :tills)
+       (create-table :menu_items)
+       (create-table :till_menu_items)
+       (create-table :orders)
+       (create-table :order_menu_items)
+       (log "Configuring table keys:")
+       (add-primary-key :till_menu_items :till_id :menu_item_id)
+       (add-foreign-key :till_menu_items :till_id :tills :id)
+       (add-foreign-key :till_menu_items :menu_item_id :menu_items :id)
+       (add-primary-key :order_menu_items :order_id :menu_item_id)
+       (add-foreign-key :orders :till_id :tills :id)
+       (add-foreign-key :order_menu_items :order_id :orders :id)
+       (add-foreign-key :order_menu_items :menu_item_id :menu_items :id)))))

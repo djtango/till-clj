@@ -46,7 +46,7 @@
 
 (defn add-till-menu-items
   [params]
-  (db/add-till-menu-items params))
+  (db/add-till-menu-items! params))
 
 (defn edit-till-page
   [till-id]
@@ -69,10 +69,10 @@
   [params]
   (let [[till-id shop-name address phone]
         (vals params)]
-    (db/update-till till-id
-                    shop-name
-                    address
-                    phone)))
+    (db/update-till! till-id
+                     shop-name
+                     address
+                     phone)))
 
 (defn menu-page
   [till-id]

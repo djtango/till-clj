@@ -19,10 +19,13 @@
   :profiles {:test-local {:dependencies [[javax.servlet/servlet-api "2.5"]
                                          [ring/ring-mock            "0.3.0"]
                                          [speclj                    "3.3.1"]]}
+             :dev-local {:dependencies [[javax.servlet/servlet-api "2.5"]
+                                        [ring/ring-mock             "0.3.0"]
+                                        [speclj                     "3.3.1"]]}
              :dev-env-vars {}
              :test-env-vars {}
 
              :test [:test-local :test-env-vars]
-             :dev [:dev-env-vars]}
+             :dev [:dev-local :dev-env-vars]}
   :test-paths ["spec"])
 

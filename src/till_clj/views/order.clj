@@ -30,7 +30,7 @@
 (defn create-order
   [params]
   (prn params)
-  (db/add-order-menu-items params))
+  (db/add-order-menu-items! params))
 
 (defn order-page
   [order-id]
