@@ -73,6 +73,3 @@ Then navigate to the URL:
 ```
 localhost:3000/
 ```
-## License
-
-Copyright © 2016 FIXME
